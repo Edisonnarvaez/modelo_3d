@@ -1,19 +1,15 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useLoader, useFrame } from "@react-three/fiber";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import {
-    TextureLoader,
-    Sprite,
-    SpriteMaterial,
-    VideoTexture,
-    Vector3,
-} from "three";
+import { TextureLoader, Sprite, SpriteMaterial, VideoTexture, Vector3 } from "three";
+
 
 export default function ModeloPractica() {
     // 🔹 Cargar el modelo GLB
     const gltf = useLoader(GLTFLoader, "/assets/model.glb");
     const texture = useLoader(TextureLoader, "/assets/baked.jpg");
-    const screenTexture = useLoader(TextureLoader, "/assets/publicidad.jpg");
+    const screenTexture = useLoader(TextureLoader, "/assets/pantalla.jpg");
+    const screenTexture2 = useLoader(TextureLoader, "/assets/images.jpg");
     const [targetChairPosition, setTargetChairPosition] = useState(null);
     const chairAudioRef = useRef(new Audio("/assets/chair-move.mp3")); // 🔹 Sonido de la silla
     const audioRef = useRef(new Audio("/assets/ambiente.mp3")); // 🔊 Sonido ambiente
@@ -23,14 +19,20 @@ export default function ModeloPractica() {
         useLoader(TextureLoader, "/assets/note3.png"),
     ];
 
+    const audioRefp = useRef(new Audio("/assets/penguin.mp3")); // 🔊 Sonido ambiente
+
+
     const [chairInitialPos, setChairInitialPos] = useState(null);
     const plantRef = useRef();
     const modelRef = useRef();
     const chairRef = useRef();
     const speakerRef = useRef();
     const notesRef = useRef([]);
-    const screenRef = useRef();
+    const screenRef = useRef()
     const noteIntervalRef = useRef(null);
+    const audioRefpenguin = useRef()
+
+
     // 🔹 Crear referencia para la pantalla y el video
     const screenRef1 = useRef();
     const videoRef = useRef(document.createElement("video"));
@@ -44,6 +46,7 @@ export default function ModeloPractica() {
         texture.flipY = false;
         //texture2.flipY = false;
         //texture3.flipY = true;
+
 
         // 📌 Crear video y cargarlo como textura
         videoRef.current.src = "/assets/video.mp4"; // Cambia esto por un video real
@@ -69,6 +72,9 @@ export default function ModeloPractica() {
                 } else if (child.name === "desktop-plane-1") {
                     child.material = child.material.clone();
                     child.material.map = screenTexture;
+                } else if (child.name === "picture") {
+                    child.material = child.material.clone();
+                    child.material.map = screenTexture2;
                 } else {
                     child.material.map = texture;
                 }
@@ -77,11 +83,13 @@ export default function ModeloPractica() {
             }
         });
 
+
         // Buscar la pantalla y asignar la textura
         screenRef.current = gltf.scene.getObjectByName("desktop-plane-1");
         // Obtener referencias específicas
         chairRef.current = gltf.scene.getObjectByName("chair");
         speakerRef.current = gltf.scene.getObjectByName("speaker");
+        audioRefpenguin.current = gltf.scene.getObjectByName("penguin");
 
         if (!chairRef.current) console.warn("No se encontró la silla");
         if (!speakerRef.current) console.warn("No se encontró el parlante");
@@ -92,7 +100,7 @@ export default function ModeloPractica() {
 
         // Configurar audio en loop
         audioRef.current.loop = true;
-    }, [gltf, screenTexture]);
+    }, [gltf]);
 
     // 🔹 Control de animaciones en cada frame
     useFrame(() => {
@@ -102,6 +110,7 @@ export default function ModeloPractica() {
                 setTargetChairPosition(null);
             }
         }
+
 
         // 📌 Animar las notas musicales
         notesRef.current.forEach((note, index) => {
@@ -113,22 +122,18 @@ export default function ModeloPractica() {
                 notesRef.current.splice(index, 1);
             }
         });
+
     });
     const handleChairClick = () => {
         if (chairRef.current) {
-            setTargetChairPosition(
-                new Vector3(
-                    chairRef.current.position.x + 1.5,
-                    chairRef.current.position.y,
-                    chairRef.current.position.z
-                )
-            );
+            setTargetChairPosition(new Vector3(
+                chairRef.current.position.x + 1.5,
+                chairRef.current.position.y,
+                chairRef.current.position.z
+            ));
             // 🔊 Reproducir sonido al mover la silla
-            chairAudioRef.current
-                .play()
-                .catch((error) =>
-                    console.error("❌ Error al reproducir audio:", error)
-                );
+            chairAudioRef.current.play().catch((error) => console.error("❌ Error al reproducir audio:", error));
+
         }
     };
     const handleSpeakerClick = () => {
@@ -143,6 +148,18 @@ export default function ModeloPractica() {
         }
     };
 
+    const handlePenguinClick = () => {
+        if (audioRefp.current.paused) {
+            audioRefp.current.play();
+            console.log("🎵 Música pinguino activada");
+            startNotes();
+        } else {
+            audioRefp.current.pause();
+            console.log("🔇 Música pinguino pausada");
+            stopNotes();
+        }
+    };
+
     // 🎶 Función para crear notas musicales que flotan
     const startNotes = () => {
         stopNotes(); // Limpiar intervalos previos
@@ -150,11 +167,7 @@ export default function ModeloPractica() {
             if (!speakerRef.current) return;
 
             const texture = noteTextures[Math.floor(Math.random() * 3)];
-            const material = new SpriteMaterial({
-                map: texture,
-                transparent: true,
-                opacity: 1,
-            });
+            const material = new SpriteMaterial({ map: texture, transparent: true, opacity: 1 });
             const note = new Sprite(material);
 
             const speakerPos = speakerRef.current.position.clone();
@@ -204,18 +217,27 @@ export default function ModeloPractica() {
             handlePlantClick();
         } else if (clickedObject === "desktop-plane-1") {
             console.log("🖥️ Click en monitor 1");
+            //handleScreenClick();
         } else if (clickedObject === "desktop-plane-0") {
             console.log("🖥️ Click en mause");
             handleScreenClick();
-        } else if (clickedObject === "mouse") {
+        }
+        else if (clickedObject === "mouse") {
             console.log("🖥️ Click en mause");
             handleScreenClick();
         }
-    };
+        else if (clickedObject === "shelving") {
+            console.log("🖥️ Click en libros");
+            handleSpeakerClick();
+        }
+        else if (clickedObject === "penguin") {
+            console.log("🖥️ Click en penguin");
+            handlePenguinClick();
+        }
+    }
 
     return (
-        <primitive
-            object={gltf.scene}
+        <primitive object={gltf.scene}
             scale={1}
             position={[0, -1, 0]}
             onPointerDown={handleObjectClick}
@@ -226,4 +248,5 @@ export default function ModeloPractica() {
         //}}
         />
     );
+
 }
